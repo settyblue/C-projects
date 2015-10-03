@@ -2,7 +2,7 @@
   Infix to postfix conversion in C++ 
   Input Postfix expression must be in a desired format. 
   Operands and operator, both must be single character.
-  Only '+'  ,  '-'  , '*', '/' and '$' (for exponentiation)  operators are expected. 
+  Only '+'  ,  '-'  , '*', '/' and '^' (for exponentiation)  operators are expected. 
 */
 #include<iostream>
 #include<stack>
@@ -95,7 +95,7 @@ bool IsOperand(char C)
 // Function to verify whether a character is operator symbol or not. 
 bool IsOperator(char C)
 {
-	if(C == '+' || C == '-' || C == '*' || C == '/' || C== '$')
+	if(C == '+' || C == '-' || C == '*' || C == '/' || C== '^')
 		return true;
 
 	return false;
@@ -104,7 +104,7 @@ bool IsOperator(char C)
 // Function to verify whether an operator is right associative or not. 
 int IsRightAssociative(char op)
 {
-	if(op == '$') return true;
+	if(op == '^') return true;
 	return false;
 }
 
@@ -122,7 +122,7 @@ int GetOperatorWeight(char op)
 	case '/':
 		weight = 2;
 		break;
-	case '$':
+	case '^':
 		weight = 3;
 		break;
 	}
