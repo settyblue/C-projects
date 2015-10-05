@@ -41,7 +41,6 @@ int main(){
 	//parse input from the file.
 	parse_input(grid_blocks);
 	//print the parsed data.
-	//print_grid_block(grid_blocks[0]);
 	print_grid_blocks(grid_blocks);
 	return 0;
 }
