@@ -9,6 +9,9 @@
 std::ifstream myfile("Numbers2.txt");
 using namespace std;
 
+#define TEMP_MULTIPLIER 0.1
+#define CONVERGENCE_LIMIT 0.1
+
 struct grid_block{
 	int box_id;
 	int up_left_x;
@@ -41,6 +44,10 @@ float temperature_difference(int id1,vector<grid_block>& grid_blocks);
 
 void compute_effective_perimeter(vector<grid_block>& grid_blocks);
 
+void start_iterations_for_dissipations(vector<grid_block>& grid_blocks);
+
+float retrieve_min_max(vector<grid_block>& grid_blocks);
+
 int main(){
 	int num_of_grids,num_grid_rows,num_grid_columns;	
 	string line;
@@ -50,9 +57,11 @@ int main(){
 	parse_input(grid_blocks);
 	//print the parsed data.
 	//print_grid_blocks(grid_blocks);
-	cout<<sum_of_temp_on_perimeter(grid_blocks[11],grid_blocks);
+	//cout<<sum_of_temp_on_perimeter(grid_blocks[11],grid_blocks);
 	compute_effective_perimeter(grid_blocks);
-	print_grid_blocks(grid_blocks);
+	//print_grid_blocks(grid_blocks);
+	start_iterations_for_dissipations(grid_blocks);
+	//print_grid_blocks(grid_blocks);
 	return 0;
 }
 
@@ -69,7 +78,7 @@ void parse_input(vector<grid_block>& grid_blocks){
 	    iss>>num_grid_rows;
 	    iss>>num_grid_columns;
 		iss.clear();
-		cout<<"num_of_grids num_grid_rows num_grid_columns"<<num_of_grids<<num_grid_rows<<num_grid_columns<<endl;
+		//cout<<"num_of_grids num_grid_rows num_grid_columns"<<num_of_grids<<num_grid_rows<<num_grid_columns<<endl;
 		
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
@@ -196,16 +205,15 @@ float weightage(int id1, int id2, vector<grid_block>& grid_blocks){
 	float weight = 0;
 	if((grid_blocks[id1].up_left_x <= grid_blocks[id2].up_left_x) && (grid_blocks[id2].up_left_x < (grid_blocks[id1].up_left_x + grid_blocks[id1].width))){
 		if((grid_blocks[id2].up_left_x + grid_blocks[id2].width) < (grid_blocks[id1].up_left_x + grid_blocks[id1].width)){
-			weight =  grid_blocks[id2].width;cout<<"debug 1."<<endl;
+			weight =  grid_blocks[id2].width;
 		}else{
-			weight =  grid_blocks[id1].up_left_x + grid_blocks[id1].width - grid_blocks[id2].up_left_x;cout<<"debug 2."<<endl;
-			cout<<grid_blocks[id1].up_left_x<<" "<<grid_blocks[id1].width<<" "<<grid_blocks[id2].up_left_x<<endl;
+			weight =  grid_blocks[id1].up_left_x + grid_blocks[id1].width - grid_blocks[id2].up_left_x;
 		}
 	}else if((grid_blocks[id2].up_left_x <= grid_blocks[id1].up_left_x ) && (grid_blocks[id1].up_left_x < (grid_blocks[id2].up_left_x + grid_blocks[id2].width))){
 		if((grid_blocks[id1].up_left_x + grid_blocks[id1].width) < (grid_blocks[id2].up_left_x + grid_blocks[id2].width)){
-			weight = grid_blocks[id1].width;cout<<"debug 3."<<endl;
+			weight = grid_blocks[id1].width;
 		}else{
-			weight = grid_blocks[id2].up_left_x + grid_blocks[id2].width - grid_blocks[id1].up_left_x;cout<<"debug 4."<<endl;
+			weight = grid_blocks[id2].up_left_x + grid_blocks[id2].width - grid_blocks[id1].up_left_x;
 		}
 	}else if((grid_blocks[id1].up_left_y <= grid_blocks[id2].up_left_y ) && ( grid_blocks[id2].up_left_y < (grid_blocks[id1].up_left_y + grid_blocks[id1].height))){
 		if((grid_blocks[id2].up_left_y + grid_blocks[id2].height) < (grid_blocks[id1].up_left_y + grid_blocks[id1].height)){
@@ -223,9 +231,10 @@ float weightage(int id1, int id2, vector<grid_block>& grid_blocks){
 	return weight;
 }
 
-float temperature_difference(int id1,vector<grid_block>& grid_blocks){
+float temperature_difference(int id,vector<grid_block>& grid_blocks){
 	float diff;
-	diff = 
+	diff = grid_blocks[id].temperature - (sum_of_temp_on_perimeter(grid_blocks[id],grid_blocks)/grid_blocks[id].perimeter);
+	return diff;
 }
 
 void compute_effective_perimeter(vector<grid_block>& grid_blocks){
@@ -254,4 +263,54 @@ void compute_effective_perimeter(vector<grid_block>& grid_blocks){
 		//
 		grid_blocks[i].perimeter = perimeter;
 	}
+}
+
+float retrieve_min_max_diff(vector<grid_block>& grid_blocks){
+	float min,max=0;
+	min = grid_blocks[0].temperature;
+	max = grid_blocks[0].temperature;
+	for(int i=1;i<grid_blocks.size();i++){
+		if(grid_blocks[i].temperature < min){
+			min = grid_blocks[i].temperature;
+		}
+		if(grid_blocks[i].temperature > max){
+			max = grid_blocks[i].temperature;
+		}
+	}
+	return max-min;
+}
+
+void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
+	vector<float> temporary;
+	bool stop = false;
+	for(int i=0;i<grid_blocks.size();i++){
+		temporary.push_back(0);
+	}
+	int j=0;
+	float min,max;
+	while(j<100 && !stop){
+		
+		for(int i=0;i<grid_blocks.size();i++){
+			float diff = temperature_difference(i,grid_blocks);
+			temporary[i] = grid_blocks[i].temperature - diff*TEMP_MULTIPLIER;
+		}
+		min = temporary[0];
+		max = temporary[0];
+		for(int i=0;i<grid_blocks.size();i++){
+			grid_blocks[i].temperature = temporary[i];
+			if(temporary[i] < min){
+				min = temporary[i];
+			}
+			if(temporary[i] > max){
+				max = temporary[i];
+			}
+		}
+		j++;
+		if((max-min) < max*CONVERGENCE_LIMIT){
+			stop = true;
+		} 
+	}
+	cout<<"final iteration : "<<j<<endl;
+	cout<<" min temp : "<<min<<endl;
+	cout<<" max temp : "<<max<<endl;
 }
