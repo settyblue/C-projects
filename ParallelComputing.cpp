@@ -5,10 +5,9 @@
 #include<fstream>
 #include<sstream>
 #include<vector>
-std::ifstream myfile("Numbers.txt");
+#include<functional>
+std::ifstream myfile("Numbers2.txt");
 using namespace std;
-
-//
 
 struct grid_block{
 	int box_id;
@@ -25,6 +24,7 @@ struct grid_block{
 	vector<int> left_n;
 	vector<int> right_n;
 	float temperature;
+	int perimeter;
 };
 
 void print_grid_block(grid_block box);
@@ -32,6 +32,14 @@ void print_grid_block(grid_block box);
 void print_grid_blocks(vector<grid_block>& grid_blocks);
 
 void parse_input(vector<grid_block>& grid_blocks);
+
+float sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks);
+
+float weightage(int id1, int id2, vector<grid_block>& grid_blocks);
+
+float temperature_difference(int id1,vector<grid_block>& grid_blocks);
+
+void compute_effective_perimeter(vector<grid_block>& grid_blocks);
 
 int main(){
 	int num_of_grids,num_grid_rows,num_grid_columns;	
@@ -41,6 +49,9 @@ int main(){
 	//parse input from the file.
 	parse_input(grid_blocks);
 	//print the parsed data.
+	//print_grid_blocks(grid_blocks);
+	cout<<sum_of_temp_on_perimeter(grid_blocks[11],grid_blocks);
+	compute_effective_perimeter(grid_blocks);
 	print_grid_blocks(grid_blocks);
 	return 0;
 }
@@ -151,5 +162,96 @@ void print_grid_block(grid_block box){
 	}
 	cout<<endl;
 	cout<<"temperature : "<<box.temperature<<endl;
+	cout<<"perimeter : "<<box.perimeter<<endl;
 	cout<<"--------------"<<endl;
+}
+
+float sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks){
+	float temperature = 0.0;
+	int id;
+	//Add temperatures on the top neighbors.
+	for (int i=0;i<box.num_top_n;i++){
+		id = box.top_n[i];
+		temperature += weightage(box.box_id,id,grid_blocks)*grid_blocks[id].temperature;
+	}
+	//Add temperatures on the bottom neighbors.
+	for (int i=0;i<box.num_bottom_n;i++){
+		id = box.bottom_n[i];
+		temperature += weightage(box.box_id,id,grid_blocks)*grid_blocks[id].temperature;
+	}
+	//Add temperatures on the left neighbors.
+	for (int i=0;i<box.num_left_n;i++){
+		id = box.left_n[i];
+		temperature += weightage(box.box_id,id,grid_blocks)*grid_blocks[id].temperature;
+	}
+	//Add temperatures on the right neighbors.
+	for (int i=0;i<box.num_right_n;i++){
+		id = box.right_n[i];
+		temperature += weightage(box.box_id,id,grid_blocks)*grid_blocks[id].temperature;
+	}
+	return temperature;
+}
+
+float weightage(int id1, int id2, vector<grid_block>& grid_blocks){
+	float weight = 0;
+	if((grid_blocks[id1].up_left_x <= grid_blocks[id2].up_left_x) && (grid_blocks[id2].up_left_x < (grid_blocks[id1].up_left_x + grid_blocks[id1].width))){
+		if((grid_blocks[id2].up_left_x + grid_blocks[id2].width) < (grid_blocks[id1].up_left_x + grid_blocks[id1].width)){
+			weight =  grid_blocks[id2].width;cout<<"debug 1."<<endl;
+		}else{
+			weight =  grid_blocks[id1].up_left_x + grid_blocks[id1].width - grid_blocks[id2].up_left_x;cout<<"debug 2."<<endl;
+			cout<<grid_blocks[id1].up_left_x<<" "<<grid_blocks[id1].width<<" "<<grid_blocks[id2].up_left_x<<endl;
+		}
+	}else if((grid_blocks[id2].up_left_x <= grid_blocks[id1].up_left_x ) && (grid_blocks[id1].up_left_x < (grid_blocks[id2].up_left_x + grid_blocks[id2].width))){
+		if((grid_blocks[id1].up_left_x + grid_blocks[id1].width) < (grid_blocks[id2].up_left_x + grid_blocks[id2].width)){
+			weight = grid_blocks[id1].width;cout<<"debug 3."<<endl;
+		}else{
+			weight = grid_blocks[id2].up_left_x + grid_blocks[id2].width - grid_blocks[id1].up_left_x;cout<<"debug 4."<<endl;
+		}
+	}else if((grid_blocks[id1].up_left_y <= grid_blocks[id2].up_left_y ) && ( grid_blocks[id2].up_left_y < (grid_blocks[id1].up_left_y + grid_blocks[id1].height))){
+		if((grid_blocks[id2].up_left_y + grid_blocks[id2].height) < (grid_blocks[id1].up_left_y + grid_blocks[id1].height)){
+			weight = grid_blocks[id2].height;
+		}else{
+			weight = grid_blocks[id1].up_left_y + grid_blocks[id1].height - grid_blocks[id2].up_left_y;
+		}
+	}else if((grid_blocks[id2].up_left_y <= grid_blocks[id1].up_left_y ) && (grid_blocks[id1].up_left_y < (grid_blocks[id2].up_left_y + grid_blocks[id2].height))){
+		if((grid_blocks[id1].up_left_y + grid_blocks[id1].height) < (grid_blocks[id2].up_left_y + grid_blocks[id2].height)){
+			weight = grid_blocks[id1].height;
+		}else{
+			weight = grid_blocks[id2].up_left_y + grid_blocks[id2].height - grid_blocks[id1].up_left_y;
+		}
+	}
+	return weight;
+}
+
+float temperature_difference(int id1,vector<grid_block>& grid_blocks){
+	float diff;
+	diff = 
+}
+
+void compute_effective_perimeter(vector<grid_block>& grid_blocks){
+	int id;
+	for(int i=0;i<grid_blocks.size();i++){
+		int perimeter = 0;
+		for (int j=0;j<grid_blocks[i].num_top_n;j++){
+			id = grid_blocks[i].top_n[j];
+			perimeter += weightage(grid_blocks[i].box_id,id,grid_blocks);
+		}
+		//Add temperatures on the bottom neighbors.
+		for (int j=0;j<grid_blocks[i].num_bottom_n;j++){
+			id = grid_blocks[i].bottom_n[j];
+			perimeter += weightage(grid_blocks[i].box_id,id,grid_blocks);
+		}
+		//Add temperatures on the left neighbors.
+		for (int j=0;j<grid_blocks[i].num_left_n;j++){
+			id = grid_blocks[i].left_n[j];
+			perimeter += weightage(grid_blocks[i].box_id,id,grid_blocks);
+		}
+		//Add temperatures on the right neighbors.
+		for (int j=0;j<grid_blocks[i].num_right_n;j++){
+			id = grid_blocks[i].right_n[j];
+			perimeter += weightage(grid_blocks[i].box_id,id,grid_blocks);
+		}
+		//
+		grid_blocks[i].perimeter = perimeter;
+	}
 }
