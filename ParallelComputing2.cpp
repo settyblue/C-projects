@@ -6,11 +6,13 @@
 #include<sstream>
 #include<vector>
 #include<functional>
-std::ifstream myfile("Numbers2.txt");
+#include <ctime>
+std::ifstream myfile("testgrid_200_1166");
 using namespace std;
 
-#define TEMP_MULTIPLIER 0.1
-#define CONVERGENCE_LIMIT 0.1
+#define MAX_ITERATIONS 100000000
+#define AFFECT_RATE 0.005
+#define EPSILON 0.005
 
 struct grid_block{
 	int box_id;
@@ -26,7 +28,7 @@ struct grid_block{
 	vector<int> bottom_n;
 	vector<int> left_n;
 	vector<int> right_n;
-	float temperature;
+	double temperature;
 	int perimeter;
 };
 
@@ -36,37 +38,117 @@ void print_grid_blocks(vector<grid_block>& grid_blocks);
 
 void parse_input(vector<grid_block>& grid_blocks);
 
-float sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks);
+void parse_input(vector<grid_block>& grid_blocks,char* argv);
 
-float weightage(int id1, int id2, vector<grid_block>& grid_blocks);
+double sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks);
 
-float temperature_difference(int id1,vector<grid_block>& grid_blocks);
+double weightage(int id1, int id2, vector<grid_block>& grid_blocks);
+
+double temperature_difference(int id1,vector<grid_block>& grid_blocks);
 
 void compute_effective_perimeter(vector<grid_block>& grid_blocks);
 
 void start_iterations_for_dissipations(vector<grid_block>& grid_blocks);
 
-int main(){
+int main(int argc, char **argv){
+	clock_t begin = clock();
+	cout<<"filename : "<<argv[1]<<endl;
 	int num_of_grids,num_grid_rows,num_grid_columns;	
 	string line;
 	int id;
 	vector<grid_block> grid_blocks;
 	//parse input from the file.
-	parse_input(grid_blocks);
+	parse_input(grid_blocks,argv[1]);
 	//print the parsed data.
 	//print_grid_blocks(grid_blocks);
-	//cout<<sum_of_temp_on_perimeter(grid_blocks[11],grid_blocks);
 	compute_effective_perimeter(grid_blocks);
-	//print_grid_blocks(grid_blocks);
 	start_iterations_for_dissipations(grid_blocks);
-	print_grid_blocks(grid_blocks);
+	clock_t end = clock();
+  	double elapsed_secs = double(end - begin)/CLOCKS_PER_SEC;
+  	cout<<"running time : "<<elapsed_secs;
 	return 0;
 }
 
-void parse_input(vector<grid_block>& grid_blocks){
+void parse_input(vector<grid_block>& grid_blocks ){
 	int num_of_grids,num_grid_rows,num_grid_columns;
 	int id;	
 	string line;
+	//vector<grid_block> grid_blocks;
+	if (myfile.is_open()){
+		getline (myfile,line);
+		istringstream iss;
+		iss.str(line);
+	    iss>>num_of_grids;
+	    iss>>num_grid_rows;
+	    iss>>num_grid_columns;
+		iss.clear();
+		//cout<<"num_of_grids num_grid_rows num_grid_columns"<<num_of_grids<<num_grid_rows<<num_grid_columns<<endl;
+		
+		//Lets get the grid parameters here.
+		for (int i=0;i<num_of_grids;i++){
+			//get the grid box id.
+			getline (myfile,line);iss.str(line);
+			//add a new grid block to the array of blocks.
+		  	grid_blocks.push_back(grid_block());
+		  	iss >> grid_blocks[i].box_id;
+		  	iss.clear();
+		  	//get coordinates of the box and its size.
+		  	getline (myfile,line);iss.str(line);
+		  	iss >> grid_blocks[i].up_left_x;
+		  	iss >> grid_blocks[i].up_left_y;
+		  	iss >> grid_blocks[i].height;
+		  	iss >> grid_blocks[i].width;
+		  	iss.clear();
+		  	
+		  	//get the details about neighbors.
+		  	//get the details of the top neighbors.
+		  	getline (myfile,line);iss.str(line);
+		  	iss >> grid_blocks[i].num_top_n;
+		  	for (int j=0;j<grid_blocks[i].num_top_n;j++){
+		  		iss >> id;
+		  		grid_blocks[i].top_n.push_back(id);
+			}
+			iss.clear();
+			//get details of the bottom neighnbors.
+			getline (myfile,line);iss.str(line);
+		  	iss >> grid_blocks[i].num_bottom_n;
+		  	for (int j=0;j<grid_blocks[i].num_bottom_n;j++){
+		  		iss >> id;
+		  		grid_blocks[i].bottom_n.push_back(id);
+			}
+			iss.clear();
+			//get details of the right neighnbors.
+			getline (myfile,line);iss.str(line);
+		  	iss >> grid_blocks[i].num_left_n;
+		  	for (int j=0;j<grid_blocks[i].num_left_n;j++){
+		  		iss >> id;
+		  		grid_blocks[i].left_n.push_back(id);
+			}
+			iss.clear();
+			//get details of the left neighnbors.
+			getline (myfile,line);iss.str(line);
+		  	iss >> grid_blocks[i].num_right_n;
+		  	for (int j=0;j<grid_blocks[i].num_right_n;j++){
+		  		iss >> id;
+		  		grid_blocks[i].right_n.push_back(id);
+			}
+			iss.clear();
+			//get the temperature of the box.
+			getline (myfile,line);iss.str(line);
+			iss >> grid_blocks[i].temperature;
+			iss.clear();
+			//print the grid block.
+			//print_grid_block(grid_blocks[i]);
+		}
+	    myfile.close();
+	}else cout << "Unable to open file";
+}
+
+void parse_input(vector<grid_block>& grid_blocks , char* argv){
+	int num_of_grids,num_grid_rows,num_grid_columns;
+	int id;	
+	string line;
+	std::ifstream myfile(argv);
 	//vector<grid_block> grid_blocks;
 	if (myfile.is_open()){
 		getline (myfile,line);
@@ -173,8 +255,8 @@ void print_grid_block(grid_block box){
 	cout<<"--------------"<<endl;
 }
 
-float sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks){
-	float temperature = 0.0;
+double sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks){
+	double temperature = 0.0;
 	int id;
 	//Add temperatures on the top neighbors.
 	for (int i=0;i<box.num_top_n;i++){
@@ -199,8 +281,8 @@ float sum_of_temp_on_perimeter(grid_block box,vector<grid_block>& grid_blocks){
 	return temperature;
 }
 
-float weightage(int id1, int id2, vector<grid_block>& grid_blocks){
-	float weight = 0;
+double weightage(int id1, int id2, vector<grid_block>& grid_blocks){
+	double weight = 0;
 	if((grid_blocks[id1].up_left_x <= grid_blocks[id2].up_left_x) && (grid_blocks[id2].up_left_x < (grid_blocks[id1].up_left_x + grid_blocks[id1].width))){
 		if((grid_blocks[id2].up_left_x + grid_blocks[id2].width) < (grid_blocks[id1].up_left_x + grid_blocks[id1].width)){
 			weight =  grid_blocks[id2].width;
@@ -229,8 +311,8 @@ float weightage(int id1, int id2, vector<grid_block>& grid_blocks){
 	return weight;
 }
 
-float temperature_difference(int id,vector<grid_block>& grid_blocks){
-	float diff;
+double temperature_difference(int id,vector<grid_block>& grid_blocks){
+	double diff;
 	diff = grid_blocks[id].temperature - (sum_of_temp_on_perimeter(grid_blocks[id],grid_blocks)/grid_blocks[id].perimeter);
 	return diff;
 }
@@ -264,18 +346,18 @@ void compute_effective_perimeter(vector<grid_block>& grid_blocks){
 }
 
 void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
-	vector<float> temporary;
+	vector<double> temporary;
 	bool stop = false;
 	for(int i=0;i<grid_blocks.size();i++){
 		temporary.push_back(0);
 	}
 	int j=0;
-	float min,max;
-	while(j<100 && !stop){
+	double min,max;
+	while(j<MAX_ITERATIONS && !stop){
 		
 		for(int i=0;i<grid_blocks.size();i++){
-			float diff = temperature_difference(i,grid_blocks);
-			temporary[i] = grid_blocks[i].temperature - diff*TEMP_MULTIPLIER;
+			double diff = temperature_difference(i,grid_blocks);
+			temporary[i] = grid_blocks[i].temperature - diff*AFFECT_RATE;
 		}
 		min = temporary[0];
 		max = temporary[0];
@@ -289,9 +371,11 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 			}
 		}
 		j++;
-		if((max-min) < max*CONVERGENCE_LIMIT){
+		if((max-min) < max*EPSILON){
+			cout<<"min temperature : "<<min<<endl<<"max temperature : "<<max<<endl;
 			stop = true;
 		} 
 	}
 	cout<<"final iteration : "<<j<<endl;
 }
+
