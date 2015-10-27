@@ -37,11 +37,7 @@ void findLeftMax(int* a,int* LeftMax,int length){
 	LeftMax[0] = -1;
 	LeftMax[1] = a[0];
 	for (int i=2;i<length;i++){
-		if(a[i-1]>LeftMax[i-1]){
-			LeftMax[i] = a[i-1];
-		}else{
-			LeftMax[i] = LeftMax[i-1];
-		}
+		LeftMax[i] = max(a[i-1],LeftMax[i-1]);
 	}
 }
 
@@ -49,11 +45,7 @@ void findRightMin(int* a,int* RightMin,int length){
 	RightMin[length-1] = -1;
 	RightMin[length-2] = a[length-1];
 	for(int i=length-3;i>-1;i--){
-		if(a[i+1]<RightMin[i+1]){
-			RightMin[i] = a[i+1];
-		}else{
-			RightMin[i] = RightMin[i+1];
-		}
+		RightMin[i] = min(a[i+1],RightMin[i+1]);
 	}
 }
 void printValidIndicies(int* a,int* LeftMax,int* RightMin, int length){
