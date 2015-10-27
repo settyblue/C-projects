@@ -3,11 +3,9 @@
 #include<math.h>
 #include<stack>
 #include<fstream>
-#include<sstream>
 #include<vector>
-#include<functional>
 #include <ctime>
-std::ifstream myfile("testgrid_200_1166");
+std::ifstream myfile("testgrid_2");
 using namespace std;
 
 #define MAX_ITERATIONS 100000000
@@ -52,13 +50,18 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks);
 
 int main(int argc, char **argv){
 	clock_t begin = clock();
-	cout<<"filename : "<<argv[1]<<endl;
+	
 	int num_of_grids,num_grid_rows,num_grid_columns;	
 	string line;
 	int id;
 	vector<grid_block> grid_blocks;
 	//parse input from the file.
-	parse_input(grid_blocks,argv[1]);
+	if(argc == 2){
+		cout<<"filename : "<<argv[1]<<endl;
+		parse_input(grid_blocks,argv[1]);
+	}else{
+		parse_input(grid_blocks);
+	}
 	//print the parsed data.
 	//print_grid_blocks(grid_blocks);
 	compute_effective_perimeter(grid_blocks);
@@ -75,68 +78,45 @@ void parse_input(vector<grid_block>& grid_blocks ){
 	string line;
 	//vector<grid_block> grid_blocks;
 	if (myfile.is_open()){
-		getline (myfile,line);
-		istringstream iss;
-		iss.str(line);
-	    iss>>num_of_grids;
-	    iss>>num_grid_rows;
-	    iss>>num_grid_columns;
-		iss.clear();
-		//cout<<"num_of_grids num_grid_rows num_grid_columns"<<num_of_grids<<num_grid_rows<<num_grid_columns<<endl;
-		
+		myfile>>num_of_grids>>num_grid_rows>>num_grid_columns;
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
-			//get the grid box id.
-			getline (myfile,line);iss.str(line);
 			//add a new grid block to the array of blocks.
 		  	grid_blocks.push_back(grid_block());
-		  	iss >> grid_blocks[i].box_id;
-		  	iss.clear();
+		  	myfile >> grid_blocks[i].box_id;
 		  	//get coordinates of the box and its size.
-		  	getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].up_left_x;
-		  	iss >> grid_blocks[i].up_left_y;
-		  	iss >> grid_blocks[i].height;
-		  	iss >> grid_blocks[i].width;
-		  	iss.clear();
+		  	myfile >> grid_blocks[i].up_left_x;
+		  	myfile >> grid_blocks[i].up_left_y;
+		  	myfile >> grid_blocks[i].height;
+		  	myfile >> grid_blocks[i].width;
 		  	
 		  	//get the details about neighbors.
 		  	//get the details of the top neighbors.
-		  	getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_top_n;
+		  	myfile >> grid_blocks[i].num_top_n;
 		  	for (int j=0;j<grid_blocks[i].num_top_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].top_n.push_back(id);
 			}
-			iss.clear();
 			//get details of the bottom neighnbors.
-			getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_bottom_n;
+			myfile >> grid_blocks[i].num_bottom_n;
 		  	for (int j=0;j<grid_blocks[i].num_bottom_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].bottom_n.push_back(id);
 			}
-			iss.clear();
 			//get details of the right neighnbors.
-			getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_left_n;
+			myfile >> grid_blocks[i].num_left_n;
 		  	for (int j=0;j<grid_blocks[i].num_left_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].left_n.push_back(id);
 			}
-			iss.clear();
 			//get details of the left neighnbors.
-			getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_right_n;
+			myfile >> grid_blocks[i].num_right_n;
 		  	for (int j=0;j<grid_blocks[i].num_right_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].right_n.push_back(id);
 			}
-			iss.clear();
 			//get the temperature of the box.
-			getline (myfile,line);iss.str(line);
-			iss >> grid_blocks[i].temperature;
-			iss.clear();
+			myfile >> grid_blocks[i].temperature;
 			//print the grid block.
 			//print_grid_block(grid_blocks[i]);
 		}
@@ -150,69 +130,46 @@ void parse_input(vector<grid_block>& grid_blocks , char* argv){
 	string line;
 	std::ifstream myfile(argv);
 	//vector<grid_block> grid_blocks;
-	if (myfile.is_open()){
-		getline (myfile,line);
-		istringstream iss;
-		iss.str(line);
-	    iss>>num_of_grids;
-	    iss>>num_grid_rows;
-	    iss>>num_grid_columns;
-		iss.clear();
-		//cout<<"num_of_grids num_grid_rows num_grid_columns"<<num_of_grids<<num_grid_rows<<num_grid_columns<<endl;
-		
+		if (myfile.is_open()){
+		myfile>>num_of_grids>>num_grid_rows>>num_grid_columns;
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
-			//get the grid box id.
-			getline (myfile,line);iss.str(line);
 			//add a new grid block to the array of blocks.
 		  	grid_blocks.push_back(grid_block());
-		  	iss >> grid_blocks[i].box_id;
-		  	iss.clear();
+		  	myfile >> grid_blocks[i].box_id;
 		  	//get coordinates of the box and its size.
-		  	getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].up_left_x;
-		  	iss >> grid_blocks[i].up_left_y;
-		  	iss >> grid_blocks[i].height;
-		  	iss >> grid_blocks[i].width;
-		  	iss.clear();
+		  	myfile >> grid_blocks[i].up_left_x;
+		  	myfile >> grid_blocks[i].up_left_y;
+		  	myfile >> grid_blocks[i].height;
+		  	myfile >> grid_blocks[i].width;
 		  	
 		  	//get the details about neighbors.
 		  	//get the details of the top neighbors.
-		  	getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_top_n;
+		  	myfile >> grid_blocks[i].num_top_n;
 		  	for (int j=0;j<grid_blocks[i].num_top_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].top_n.push_back(id);
 			}
-			iss.clear();
 			//get details of the bottom neighnbors.
-			getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_bottom_n;
+			myfile >> grid_blocks[i].num_bottom_n;
 		  	for (int j=0;j<grid_blocks[i].num_bottom_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].bottom_n.push_back(id);
 			}
-			iss.clear();
 			//get details of the right neighnbors.
-			getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_left_n;
+			myfile >> grid_blocks[i].num_left_n;
 		  	for (int j=0;j<grid_blocks[i].num_left_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].left_n.push_back(id);
 			}
-			iss.clear();
 			//get details of the left neighnbors.
-			getline (myfile,line);iss.str(line);
-		  	iss >> grid_blocks[i].num_right_n;
+			myfile >> grid_blocks[i].num_right_n;
 		  	for (int j=0;j<grid_blocks[i].num_right_n;j++){
-		  		iss >> id;
+		  		myfile >> id;
 		  		grid_blocks[i].right_n.push_back(id);
 			}
-			iss.clear();
 			//get the temperature of the box.
-			getline (myfile,line);iss.str(line);
-			iss >> grid_blocks[i].temperature;
-			iss.clear();
+			myfile >> grid_blocks[i].temperature;
 			//print the grid block.
 			//print_grid_block(grid_blocks[i]);
 		}
@@ -376,6 +333,6 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 			stop = true;
 		} 
 	}
-	cout<<"final iteration : "<<j<<endl;
+	cout<<"total no. of iterations : "<<j<<endl;
 }
 
