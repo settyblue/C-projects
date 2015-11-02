@@ -5,6 +5,8 @@
 #include<fstream>
 #include<vector>
 #include <ctime>
+#include<stdlib.h>
+#include<pthread.h>
 std::ifstream myfile("testgrid_50_78");
 using namespace std;
 
@@ -41,7 +43,7 @@ vector<grid_block> grid_blocks;
 vector<double> temporary;
 pthread_mutex_t mut;
 int g_num_of_threads = 2;
-int g_num_of_grids = 9;
+int g_num_of_grids;
 
 void print_grid_block(grid_block box);
 
@@ -76,11 +78,14 @@ int main(int argc, char *argv[]){
 	if(argc == 3){
 		//std::istringstream iss( "1" );
 		cout<<"filename : "<<argv[1]<<endl;
+		if(argv[2] == "-pthreads");
+		cout<<"number of threads : "<<argv[2]<<endl;
+		g_num_of_threads = atoi(argv[2]);
 		//if(iss >> g_num_of_grids){
 		//	cout<<"number of threads : "<<g_num_of_threads;
 		//}
-		cout<<"epsilon : "<<EPSILON;
-		cout<<"affect rate : "<<AFFECT_RATE;
+		cout<<"epsilon : "<<EPSILON<<endl;
+		cout<<"affect rate : "<<AFFECT_RATE<<endl;
 		parse_input(grid_blocks,argv[1]);
 	}
 	else if(argc == 2){
