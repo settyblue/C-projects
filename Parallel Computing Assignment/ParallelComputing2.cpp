@@ -9,8 +9,8 @@ std::ifstream myfile("testgrid_2");
 using namespace std;
 
 #define MAX_ITERATIONS 100000000
-#define AFFECT_RATE 0.005
-#define EPSILON 0.005
+#define AFFECT_RATE 0.001
+#define EPSILON 0.001
 
 struct grid_block{
 	int box_id;
