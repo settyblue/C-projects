@@ -9,8 +9,8 @@ std::ifstream myfile("testgrid_50_78");
 using namespace std;
 
 #define MAX_ITERATIONS 10000000
-#define AFFECT_RATE 0.5
-#define EPSILON 0.5
+#define AFFECT_RATE 0.005
+#define EPSILON 0.005
 #define NUM_THREADS 16
 
 struct grid_block{
@@ -40,8 +40,8 @@ struct stupid{
 vector<grid_block> grid_blocks;
 vector<double> temporary;
 pthread_mutex_t mut;
-int no_of_threads = 2;
-int no_of_grids = 9;
+int g_num_of_threads = 2;
+int g_num_of_grids = 9;
 
 void print_grid_block(grid_block box);
 
@@ -63,7 +63,7 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks);
 
 void *compute_and_store (void *);
 
-int main(int argc, char **argv){
+int main(int argc, char *argv[]){
 	clock_t begin = clock();
 	
 	//
@@ -72,7 +72,18 @@ int main(int argc, char **argv){
 	int id;
 	//vector<grid_block> grid_blocks;
 	//parse input from the file.
-	if(argc == 2){
+	cout<<"Running the iterations on pthreads."<<endl;
+	if(argc == 3){
+		//std::istringstream iss( "1" );
+		cout<<"filename : "<<argv[1]<<endl;
+		//if(iss >> g_num_of_grids){
+		//	cout<<"number of threads : "<<g_num_of_threads;
+		//}
+		cout<<"epsilon : "<<EPSILON;
+		cout<<"affect rate : "<<AFFECT_RATE;
+		parse_input(grid_blocks,argv[1]);
+	}
+	else if(argc == 2){
 		cout<<"filename : "<<argv[1]<<endl;
 		parse_input(grid_blocks,argv[1]);
 	}else{
@@ -95,9 +106,8 @@ void parse_input(vector<grid_block>& grid_blocks ){
 	string line;
 	//vector<grid_block> grid_blocks;
 	if (myfile.is_open()){
-		myfile>>num_of_grids>>num_grid_rows>>num_grid_columns;
-		no_of_grids = num_of_grids;
-		cout<<"number of grids : "<<no_of_grids;
+		myfile>>g_num_of_grids>>num_grid_rows>>num_grid_columns;
+		num_of_grids = g_num_of_grids;
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
 			//add a new grid block to the array of blocks.
@@ -150,8 +160,8 @@ void parse_input(vector<grid_block>& grid_blocks , char* argv){
 	std::ifstream myfile(argv);
 	//vector<grid_block> grid_blocks;
 		if (myfile.is_open()){
-		myfile>>num_of_grids>>num_grid_rows>>num_grid_columns;
-		no_of_grids = num_of_grids;
+		myfile>>g_num_of_grids>>num_grid_rows>>num_grid_columns;
+		num_of_grids = g_num_of_grids;
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
 			//add a new grid block to the array of blocks.
@@ -330,21 +340,17 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 	}
 	int j=0;
 	double min,max;
-	
+	//int num_of_threads;
 	while(j<MAX_ITERATIONS && !stop){
 		//cout<<"running iteration number : "<<j;
 		pthread_t threads[NUM_THREADS];
-   		int num_threads = no_of_threads;
-   		for(int i=0; i < num_threads; i++ ){
+   		//num_of_threads = g_num_of_threads;
+   		for(int i=0; i < g_num_of_threads; i++ ){
       		pthread_create(&threads[i], NULL , compute_and_store,(void *)i);
   		}
   		
-  		for(int i=0; i < num_threads; i++ ){
+  		for(int i=0; i < g_num_of_threads; i++ ){
    			pthread_join(threads[i], NULL );
-  		}
-  		
-  		for(int i=0; i < num_threads; i++ ){
-   			pthread_kill(threads[i], 0);
   		}
   		
 		min = temporary[0];
@@ -371,9 +377,9 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 void *compute_and_store (void* i){
 	int k = *((int*) (&i));
 	//stupid* penultimate = &(*((stupid*) (&ultimate)));
-	for (int j=k;j<no_of_grids;j+=no_of_threads){
-		double diff = temperature_difference(k,grid_blocks);
-		temporary[k] = grid_blocks[k].temperature - diff*AFFECT_RATE;
-		cout<<"grid number called : "<<k<<endl;
+	for (int j=k;j<g_num_of_grids;j+=g_num_of_threads){
+		double diff = temperature_difference(j,grid_blocks);
+		temporary[j] = grid_blocks[j].temperature - diff*AFFECT_RATE;
+		//cout<<"grid number called : "<<j<<endl;
 	}
 }
