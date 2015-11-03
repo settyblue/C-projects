@@ -387,4 +387,5 @@ void *compute_and_store (void* i){
 		temporary[j] = grid_blocks[j].temperature - diff*AFFECT_RATE;
 		//cout<<"grid number called : "<<j<<endl;
 	}
+	pthread_exit(&k);
 }
