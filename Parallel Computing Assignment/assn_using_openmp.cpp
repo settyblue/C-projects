@@ -1,19 +1,17 @@
 #include<iostream>
 #include<string>
 #include<math.h>
+#include<omp.h>
 #include<stack>
 #include<fstream>
 #include<vector>
 #include <ctime>
-#include<stdlib.h>
-#include<pthread.h>
-std::ifstream myfile("testgrid_2");
+std::ifstream myfile("testgrid_50_78");
 using namespace std;
 
-#define MAX_ITERATIONS 10000000
-#define AFFECT_RATE 0.1
-#define EPSILON 0.1
-#define NUM_THREADS 16
+#define MAX_ITERATIONS 100000000
+#define AFFECT_RATE 0.01
+#define EPSILON 0.01
 
 struct grid_block{
 	int box_id;
@@ -33,18 +31,6 @@ struct grid_block{
 	int perimeter;
 };
 
-struct stupid{
-	vector<grid_block> grid_blocks;
-	vector<double> temporary;
-	int i;
-};
-
-vector<grid_block> grid_blocks;
-vector<double> temporary;
-pthread_mutex_t mut;
-int g_num_of_threads = 2;
-int g_num_of_grids;
-
 void print_grid_block(grid_block box);
 
 void print_grid_blocks(vector<grid_block>& grid_blocks);
@@ -63,32 +49,14 @@ void compute_effective_perimeter(vector<grid_block>& grid_blocks);
 
 void start_iterations_for_dissipations(vector<grid_block>& grid_blocks);
 
-void *compute_and_store (void *);
-
-int main(int argc, char *argv[]){
+int main(int argc, char **argv){
 	clock_t begin = clock();
-	
-	//
 	int num_of_grids,num_grid_rows,num_grid_columns;	
 	string line;
 	int id;
-	//vector<grid_block> grid_blocks;
+	vector<grid_block> grid_blocks;
 	//parse input from the file.
-	cout<<"Running the iterations on pthreads."<<endl;
-	if(argc == 3){
-		//std::istringstream iss( "1" );
-		cout<<"filename : "<<argv[1]<<endl;
-		if(argv[2] == "-pthreads");
-		cout<<"number of threads : "<<argv[2]<<endl;
-		g_num_of_threads = atoi(argv[2]);
-		//if(iss >> g_num_of_grids){
-		//	cout<<"number of threads : "<<g_num_of_threads;
-		//}
-		cout<<"epsilon : "<<EPSILON<<endl;
-		cout<<"affect rate : "<<AFFECT_RATE<<endl;
-		parse_input(grid_blocks,argv[1]);
-	}
-	else if(argc == 2){
+	if(argc == 2){
 		cout<<"filename : "<<argv[1]<<endl;
 		parse_input(grid_blocks,argv[1]);
 	}else{
@@ -98,7 +66,6 @@ int main(int argc, char *argv[]){
 	//print_grid_blocks(grid_blocks);
 	compute_effective_perimeter(grid_blocks);
 	start_iterations_for_dissipations(grid_blocks);
-	//print_grid_blocks(grid_blocks);
 	clock_t end = clock();
   	double elapsed_secs = double(end - begin)/CLOCKS_PER_SEC;
   	cout<<"running time : "<<elapsed_secs;
@@ -111,8 +78,7 @@ void parse_input(vector<grid_block>& grid_blocks ){
 	string line;
 	//vector<grid_block> grid_blocks;
 	if (myfile.is_open()){
-		myfile>>g_num_of_grids>>num_grid_rows>>num_grid_columns;
-		num_of_grids = g_num_of_grids;
+		myfile>>num_of_grids>>num_grid_rows>>num_grid_columns;
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
 			//add a new grid block to the array of blocks.
@@ -165,8 +131,7 @@ void parse_input(vector<grid_block>& grid_blocks , char* argv){
 	std::ifstream myfile(argv);
 	//vector<grid_block> grid_blocks;
 		if (myfile.is_open()){
-		myfile>>g_num_of_grids>>num_grid_rows>>num_grid_columns;
-		num_of_grids = g_num_of_grids;
+		myfile>>num_of_grids>>num_grid_rows>>num_grid_columns;
 		//Lets get the grid parameters here.
 		for (int i=0;i<num_of_grids;i++){
 			//add a new grid block to the array of blocks.
@@ -338,26 +303,28 @@ void compute_effective_perimeter(vector<grid_block>& grid_blocks){
 }
 
 void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
-	//vector<double> temporary;
+	vector<double> temporary;
 	bool stop = false;
 	for(int i=0;i<grid_blocks.size();i++){
 		temporary.push_back(0);
 	}
 	int j=0;
 	double min,max;
-	//int num_of_threads;
+	cout<<"running the openmp version."<<endl;
+	int actualThreadCount=0;
+	double diff = 0.0;
 	while(j<MAX_ITERATIONS && !stop){
-		//cout<<"running iteration number : "<<j;
-		pthread_t threads[NUM_THREADS];
-   		//num_of_threads = g_num_of_threads;
-   		for(int i=0; i < g_num_of_threads; i++ ){
-      		pthread_create(&threads[i], NULL , compute_and_store,(void *)i);
-  		}
-  		
-  		for(int i=0; i < g_num_of_threads; i++ ){
-   			pthread_join(threads[i], NULL );
-  		}
-  		
+		
+		//
+		#pragma omp parallel for private(diff)
+		for(int i=0;i<grid_blocks.size();i++){
+			actualThreadCount = omp_get_num_threads();
+			diff = temperature_difference(i,grid_blocks);
+			temporary[i] = grid_blocks[i].temperature - diff*AFFECT_RATE;
+		}
+		
+		
+		//
 		min = temporary[0];
 		max = temporary[0];
 		for(int i=0;i<grid_blocks.size();i++){
@@ -370,22 +337,12 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 			}
 		}
 		j++;
-		//cout<<" min : "<<min<<" max : "<<max<<endl;
 		if((max-min) < max*EPSILON){
 			cout<<"min temperature : "<<min<<endl<<"max temperature : "<<max<<endl;
 			stop = true;
 		} 
 	}
 	cout<<"total no. of iterations : "<<j<<endl;
+	cout<<"number of threads used : "<<actualThreadCount<<endl;
 }
 
-void *compute_and_store (void* i){
-	int k = *((int*) (&i));
-	//stupid* penultimate = &(*((stupid*) (&ultimate)));
-	for (int j=k;j<g_num_of_grids;j+=g_num_of_threads){
-		double diff = temperature_difference(j,grid_blocks);
-		temporary[j] = grid_blocks[j].temperature - diff*AFFECT_RATE;
-		//cout<<"grid number called : "<<j<<endl;
-	}
-	pthread_exit(&k);
-}

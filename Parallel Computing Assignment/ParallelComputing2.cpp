@@ -5,12 +5,12 @@
 #include<fstream>
 #include<vector>
 #include <ctime>
-std::ifstream myfile("testgrid_2");
+std::ifstream myfile("testgrid_50_78");
 using namespace std;
 
 #define MAX_ITERATIONS 100000000
-#define AFFECT_RATE 0.001
-#define EPSILON 0.001
+#define AFFECT_RATE 0.01
+#define EPSILON 0.01
 
 struct grid_block{
 	int box_id;

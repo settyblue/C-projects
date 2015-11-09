@@ -42,8 +42,10 @@ struct stupid{
 vector<grid_block> grid_blocks;
 vector<double> temporary;
 pthread_mutex_t mut;
-int g_num_of_threads = 2;
+pthread_barrier_t barrier, iterationEndBarrier, convergenceCheckBarrier, preUpdateBarrier;
+int g_num_of_threads = 4;
 int g_num_of_grids;
+int g_num_of_iterations = 0;
 
 void print_grid_block(grid_block box);
 
@@ -65,6 +67,8 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks);
 
 void *compute_and_store (void *);
 
+bool IsConvergenceReached();
+
 int main(int argc, char *argv[]){
 	clock_t begin = clock();
 	
@@ -74,7 +78,6 @@ int main(int argc, char *argv[]){
 	int id;
 	//vector<grid_block> grid_blocks;
 	//parse input from the file.
-	cout<<"Running the iterations on pthreads."<<endl;
 	if(argc == 3){
 		//std::istringstream iss( "1" );
 		cout<<"filename : "<<argv[1]<<endl;
@@ -345,19 +348,30 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 	}
 	int j=0;
 	double min,max;
-	//int num_of_threads;
-	while(j<MAX_ITERATIONS && !stop){
+	cout<<"Running iterations on persistant threads."<<endl;
 		//cout<<"running iteration number : "<<j;
+		//
+		cout<<"number of threads : "<<g_num_of_threads<<endl;
 		pthread_t threads[NUM_THREADS];
+		//pthread_barrier_init(&barrier, 0,g_num_of_threads);
+		pthread_barrier_init(&iterationEndBarrier, NULL, g_num_of_threads);
+   		pthread_barrier_init(&convergenceCheckBarrier, NULL, g_num_of_threads);
+    	pthread_barrier_init(&preUpdateBarrier, NULL, g_num_of_threads);
+
    		//num_of_threads = g_num_of_threads;
    		for(int i=0; i < g_num_of_threads; i++ ){
       		pthread_create(&threads[i], NULL , compute_and_store,(void *)i);
   		}
-  		
+ 
   		for(int i=0; i < g_num_of_threads; i++ ){
    			pthread_join(threads[i], NULL );
   		}
+
   		
+		pthread_barrier_destroy(&convergenceCheckBarrier);
+		pthread_barrier_destroy(&preUpdateBarrier);
+  		//
+  		/*
 		min = temporary[0];
 		max = temporary[0];
 		for(int i=0;i<grid_blocks.size();i++){
@@ -375,17 +389,50 @@ void start_iterations_for_dissipations(vector<grid_block>& grid_blocks){
 			cout<<"min temperature : "<<min<<endl<<"max temperature : "<<max<<endl;
 			stop = true;
 		} 
-	}
-	cout<<"total no. of iterations : "<<j<<endl;
+		*/
+	cout<<"total no. of iterations : "<<g_num_of_iterations<<endl;
 }
 
 void *compute_and_store (void* i){
 	int k = *((int*) (&i));
-	//stupid* penultimate = &(*((stupid*) (&ultimate)));
-	for (int j=k;j<g_num_of_grids;j+=g_num_of_threads){
-		double diff = temperature_difference(j,grid_blocks);
-		temporary[j] = grid_blocks[j].temperature - diff*AFFECT_RATE;
-		//cout<<"grid number called : "<<j<<endl;
+	bool convergence_reached=false;
+	while(!convergence_reached){
+		//cout<<"iteration number : "<<g_num_of_iterations<<endl;
+		for (int j=k;j<g_num_of_grids;j+=g_num_of_threads){
+			double diff = temperature_difference(j,grid_blocks);
+			temporary[j] = grid_blocks[j].temperature - diff*AFFECT_RATE;
+		}
+		pthread_barrier_wait(&preUpdateBarrier);
+		if(k==0){
+			convergence_reached = IsConvergenceReached();
+			if(convergence_reached){
+				cout<<"convergence reached."<<endl;
+			}
+			g_num_of_iterations++;
+		}
+		//cout<<"waiting tread no. "<<k;
+		pthread_barrier_wait(&convergenceCheckBarrier);
 	}
-	pthread_exit(&k);
+	pthread_barrier_destroy(&iterationEndBarrier);
+	//pthread_exit(&k);
+}
+
+bool IsConvergenceReached(){
+	double min = temporary[0];
+	double max = temporary[0];
+	bool stop = false;
+	for(int i=0;i<grid_blocks.size();i++){
+		grid_blocks[i].temperature = temporary[i];
+		if(temporary[i] < min){
+			min = temporary[i];
+		}
+		if(temporary[i] > max){
+			max = temporary[i];
+		}
+	}
+	if((max-min) < max*EPSILON){
+		cout<<"min temperature : "<<min<<endl<<"max temperature : "<<max<<endl;
+		stop = true;
+	} 
+	return stop;
 }
